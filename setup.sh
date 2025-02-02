@@ -7,7 +7,7 @@ localDirectory="$HOME/.local/phone-number-validate"
 linkLocation="/usr/local/bin/phone-number-validate"
 
 #make link in path
-sudo ln -s "$localDirectory/phone-number-validate" $linkLocation
+sudo rm $linkLocation && sudo ln -s "$localDirectory/phone-number-validate" $linkLocation || sudo ln -s "$localDirectory/phone-number-validate" $linkLocation
 
 # make a directory for the files to go into
 rm -rf $localDirectory && mkdir -p $localDirectory || mkdir -p $localDirectory

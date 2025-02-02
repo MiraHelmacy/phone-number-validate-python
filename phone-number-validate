@@ -33,7 +33,7 @@ import json
 import argparse
 import re
 
-__VERSION__ = "1.0.1"
+__VERSION__ = "1.0.2"
 
 def versionString() -> str:
   versionStr = f"phone-number-validate v{__VERSION__}"
@@ -41,7 +41,7 @@ def versionString() -> str:
 
 def cleanPhoneNumberList(phoneNumbers: list) -> list:
   #E.164 REGEX string
-  E_164_REGEX_STRING = "^\+[1-9]\d{1,14}$"
+  E_164_REGEX_STRING = r"^\+[1-9]\d{1,14}$"
   
   #compile the E.164 REGEX
   E_164_REGEX = re.compile(E_164_REGEX_STRING)
