@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import botocore.exceptions
 import validate.ValidateCLIArgs
 from validate.Validate import Validate
 from validate.ValidateResult import ValidateResultEncoder
@@ -33,7 +32,7 @@ import json
 import argparse
 import re
 
-__VERSION__ = "1.0.2"
+__VERSION__ = "1.0.3"
 
 def versionString() -> str:
   versionStr = f"phone-number-validate v{__VERSION__}"
@@ -55,9 +54,12 @@ def cleanPhoneNumberList(phoneNumbers: list) -> list:
   # for each phone number
   for phoneNumber in phoneNumbers:
     
-    #check if the phone number matched the REGEX or phone number is an empty string
-    if (E_164_REGEX.match(phoneNumber) is None) | (phoneNumber == ""):
-      print(f"ignoring non-E.164 format number: {phoneNumber}")
+    #check if the phone number matched the REGEX    
+    if (E_164_REGEX.match(phoneNumber) is None) :
+      
+      #check if phone number is an empty string 
+      if phoneNumber != "":
+        print(f"ignoring non-E.164 format number: {phoneNumber}")
       continue
 
     if (phoneNumber not in existingPhoneNumbers):
@@ -87,9 +89,12 @@ def main(cfg):
     # read from file
     contents = ReadFromFile(filePath=filePath)
     
-    #set the phone numbers list to the current contents of the phone numbers list and the contents of the phone number file
-    cfg['phoneNumbers'] = cleanPhoneNumberList(cfg['phoneNumbers'] + contents.split('\n'))
+    #add contents from the file
+    cfg['phoneNumbers'] += contents.split('\n')
   
+  #clean phone numbers list
+  cfg['phoneNumbers'] = cleanPhoneNumberList(cfg['phoneNumbers'])
+
   #create the cli args to pass
   args = validate.ValidateCLIArgs.CliArgs(cfg)
   
@@ -99,12 +104,9 @@ def main(cfg):
   
     #print the json dumped output with an indent of 2 and a custom encoder
     print(json.dumps(ValidateResponse, indent=2, cls=ValidateResultEncoder))
-  except botocore.exceptions.TokenRetrievalError as tre:
-    print(f"Check your AWS credentials: {tre}")
-    exit(1)
   except Exception as e:
     print(e)
-    exit(2)
+    exit(1)
 
 if __name__ == '__main__':
   # create parser
