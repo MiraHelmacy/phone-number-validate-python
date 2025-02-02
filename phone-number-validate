@@ -1,0 +1,129 @@
+#! /usr/bin/env python3
+
+"""
+The MIT License (MIT)
+
+Copyright © 2025 Alex Helmacy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
+import validate.ValidateCLIArgs
+from validate.Validate import Validate
+from validate.ValidateResult import ValidateResultEncoder
+from fileio.read import ReadFromFile
+import json
+import argparse
+import re
+
+__VERSION__ = "1.0.0"
+
+def versionString() -> str:
+  versionStr = f"phone-number-validate v{__VERSION__}"
+  return versionStr
+
+def cleanPhoneNumberList(phoneNumbers: list) -> list:
+  #E.164 REGEX string
+  E_164_REGEX_STRING = "^\+[1-9]\d{1,14}$"
+  
+  #compile the E.164 REGEX
+  E_164_REGEX = re.compile(E_164_REGEX_STRING)
+  
+  #phone numbers already visited
+  existingPhoneNumbers = set()
+
+  #cleaned phone numbers list
+  cleanedPhoneNumbers = []
+
+  # for each phone number
+  for phoneNumber in phoneNumbers:
+    
+    #check if the phone number matched the REGEX or phone number is an empty string
+    if (E_164_REGEX.match(phoneNumber) is None) | (phoneNumber == ""):
+      print(f"ignoring non-E.164 format number: {phoneNumber}")
+      continue
+
+    if (phoneNumber not in existingPhoneNumbers):
+      #new phone number
+      cleanedPhoneNumbers.append(phoneNumber)
+    else:
+      #existing phone number 
+      print(f"Ignoring duplicate phone number: {phoneNumber}")
+    
+    #add phone number to existing phone numbers
+    existingPhoneNumbers.add(phoneNumber)
+
+
+  return cleanedPhoneNumbers
+
+def main(cfg):
+  if cfg['version']:
+    print(versionString())
+    return
+
+  #handle config files
+  if cfg['cfg'] is not None:
+
+    # get the config file
+    filePath = cfg['cfg']
+    
+    # read from file
+    contents = ReadFromFile(filePath=filePath)
+    
+    #set the phone numbers list to the current contents of the phone numbers list and the contents of the phone number file
+    cfg['phoneNumbers'] = cleanPhoneNumberList(cfg['phoneNumbers'] + contents.split('\n'))
+  
+  #create the cli args to pass
+  args = validate.ValidateCLIArgs.CliArgs(cfg)
+  
+  #run validate
+  ValidateResponse = Validate(args=args)
+  
+  #print the json dumped output with an indent of 2 and a custom encoder
+  print(json.dumps(ValidateResponse, indent=2, cls=ValidateResultEncoder))
+
+if __name__ == '__main__':
+  # create parser
+  parser = argparse.ArgumentParser()
+  
+  #add arbitrary number of phone numbers
+  parser.add_argument("phoneNumbers", nargs="*", help="phone numbers to validate")
+  
+  # valid and invalid only are mutually exclusive
+  validOrInvalidGroup = parser.add_mutually_exclusive_group()
+  validOrInvalidGroup.add_argument("--invalidonly", action='store_true', help="only show invalid results")
+  validOrInvalidGroup.add_argument("--validonly", action='store_true', help="only show valid results")
+  
+  #add short option
+  parser.add_argument('--short', action="store_true", help="Short Output only.")
+  
+  #add config file option
+  parser.add_argument("--cfg", help="config file with phone numbers")
+  
+  #add version option
+  parser.add_argument("--version", action="store_true", help="print version information.")
+
+  #parse args
+  args = parser.parse_args()
+
+  #convert to dict
+  args = vars(args)
+  
+  #pass args to main
+  main(args)
